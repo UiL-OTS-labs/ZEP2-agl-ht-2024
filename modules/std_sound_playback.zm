@@ -1,0 +1,88 @@
+/******************************************************************************\
+FILE:           std_sound_playback.zm
+AUTHOR:         Theo Veenker <theo.veenker@beexy.nl>
+ADAPTED BY:     -
+
+DESCRIPTION:
+
+Provides sound chains for playing sound files through sound_output_device.
+
+HISTORY:
+2017-01-01 TV   Initial version for Zep 2.0
+
+\******************************************************************************/
+
+
+import std_sound_output_device;
+
+
+SoundPlayback sound_playback
+{
+    int         nrepeat;        // if != 0, number of times to repeat sound
+    dur         pausedur;       // pause between to repeated sounds
+
+    // Sound source/producer object.
+    SoundFile clip {}
+
+    on_event:init()
+    {
+        // Use all available channels
+        num_channels = sound_settings:PLAYBACK_NUM_CHANNELS;
+
+        // However, turn off all channel, but the front channel,
+        // so sounds appears to come from the front side.
+        scaling_all = 0.0;
+        scaling[FRONT_SIDE] = sound_settings:PLAYBACK_SCALING_VOLUME;
+    }
+
+    on_event:finish()
+    {
+        if (nrepeat > 0) nrepeat--;
+
+        if (nrepeat)
+            start(finish_time + pausedur);
+        else
+        {
+            signal_target(CONTINUE);
+            target = null;
+        }
+    }
+
+    void play(string fn, time tstart, Object caller=null)
+    {
+        abort();
+        nrepeat = 0;
+        pausedur = 0s;
+        device = sound_output_device;
+        clip.file = fn;
+        start(tstart);
+
+        if (caller != null) target = caller;
+    }
+
+
+    void play(string fn, time tstart, dur pause, Object caller=null)
+    {
+        abort();
+        nrepeat = (pause > 0s) ? -1 : 0;
+        pausedur = pause;
+        device = sound_output_device;
+        clip.file = fn;
+        start(tstart);
+
+        if (caller != null) target = caller;
+    }
+
+
+    void play(string fn, time tstart, dur pause, int nplay, Object caller=null)
+    {
+        abort();
+        nrepeat = nplay;
+        pausedur = pause;
+        device = sound_output_device;
+        clip.file = fn;
+        start(tstart);
+
+        if (caller != null) target = caller;
+    }
+}
